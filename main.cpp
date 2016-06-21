@@ -57,6 +57,32 @@ void debugPack(const uint32_t* src0, const uint32_t* src1, uint16_t* dst)
 	}
 }
 
+template <typename ST, typename DT>
+void dumpArray(const ST* src0, const ST* src1, const DT* dst)
+{
+	using namespace std;
+	unsigned int srcLoop = 16/sizeof(ST);
+	unsigned int dstLoop = 16/sizeof(DT);
+	cout << "src0:";
+	for(unsigned int i = 0;i < srcLoop;i++)
+	{
+		cout << '\t' << src0[i];
+	}
+	cout << endl;
+	cout << "src1:";
+	for(unsigned int i = 0;i < srcLoop;i++)
+	{
+		cout << '\t' << src1[i];
+	}
+	cout << endl;
+	cout << "dst :";
+	for(unsigned int i = 0;i < dstLoop;i++)
+	{
+		cout << '\t' << dst[i];
+	}
+	cout << endl;
+}
+
 int main(int argc, char** argv)
 {
 	RNG r(0x123);
@@ -65,24 +91,7 @@ int main(int argc, char** argv)
 	fill(src0, r);
 	fill(src1, r);
 	debugPack((const uint32_t*)src0, (const uint32_t*)src1, (uint16_t*)dst);
-	std::cout << "src0:";
-	for(uint32_t i = 0;i < 4;i++)
-	{
-		std::cout << '\t' << src0[i];
-	}
-	std::cout << std::endl;
-	std::cout << "src1:";
-	for(uint32_t i = 0;i < 4;i++)
-	{
-		std::cout << '\t' << src1[i];
-	}
-	std::cout << std::endl;
-	std::cout << "dst :";
-	for(uint32_t i = 0;i < 8;i++)
-	{
-		std::cout << '\t' << dst[i];
-	}
-	std::cout << std::endl;
+	dumpArray(src0, src1, dst);
 
 	return 0;
 }
