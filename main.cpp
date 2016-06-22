@@ -337,11 +337,11 @@ template <typename ST, typename DT>
 bool verifyArrayPack(ST* src0, ST* src1, DT* dst, DT* dst_v, RNG& r)
 {
 	unsigned int mask = 0xffff;
-	if(typeid(ST) == typeid(int))
+	if(typeid(ST) == typeid(int32_t))
 		mask = 0x7fff;
-	if(typeid(ST) == typeid(unsigned short))
+	if(typeid(ST) == typeid(uint16_t))
 		mask = 0xff;
-	if(typeid(ST) == typeid(short))
+	if(typeid(ST) == typeid(int16_t))
 		mask = 0x7f;
 	fill(src0, r, mask);
 	fill(src1, r, mask);
