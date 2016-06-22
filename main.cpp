@@ -347,12 +347,12 @@ int main(int argc, char** argv)
 	uint32_t dst_l[4],  dst_h[4];
 	uint32_t dst_v0[4], dst_v1[4];
 	bool result = true;
-	if(result == true) {result = verifyUnpack<uint32_t>("verify uint32", src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
-	if(result == true) {result = verifyUnpack<uint16_t>("verify uint16", src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
-	if(result == true) {result = verifyUnpack<uint8_t >("verify uint16", src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
-	if(result == true) {result = verifyUnpack<int32_t >("verify int32" , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
-	if(result == true) {result = verifyUnpack<int16_t >("verify int16" , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
-	if(result == true) {result = verifyUnpack<int8_t  >("verify int8"  , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyUnpack<uint32_t>("uint32", src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyUnpack<uint16_t>("uint16", src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyUnpack<uint8_t >("uint16", src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyUnpack<int32_t >("int32" , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyUnpack<int16_t >("int16" , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyUnpack<int8_t  >("int8"  , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
 
 	return 0;
 }
