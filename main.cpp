@@ -1,6 +1,9 @@
 #include <iostream>
+#include <iomanip>
 #include <arm_neon.h>
 #include "rng.hpp"
+const unsigned int cVerifyLoop = 1000;
+const unsigned int cProgress   = (cVerifyLoop/10);
 
 inline uint32x4_t cv_vunpack_lo_u32(uint32x4_t v0, uint32x4_t v1)
 {
@@ -120,7 +123,7 @@ void fill(ST* ptr, RNG& r)
 {
 	unsigned int cLoop = 16/sizeof(ST);
 	for(unsigned int i = 0;i < cLoop;i++)
-		ptr[i] = (r.next() & 0x7f);
+		ptr[i] = r.next();
 }
 
 template <typename T>
@@ -280,12 +283,37 @@ void verifyArray(T* src0, T* src1, T* dst_l, T* dst_h, T* dst_v0, T* dst_v1, RNG
 	fill(src1, r);
 	debugUnpack((const T*)src0, (const T*)src1, (T*)dst_l,  (T*)dst_h);
 	debugUnpackVector((const T*)src0, (const T*)src1, (T*)dst_v0, (T*)dst_v1);
-	dumpArray("src0:", src0);
-	dumpArray("src1:", src1);
-	dumpArray("dstL:", dst_l);
-	dumpArray("dstH:", dst_h);
-	dumpArray("vec0:", dst_v0);
-	dumpArray("vec1:", dst_v1);
+	unsigned int cLoop = 16/sizeof(T);
+	bool hasDifference = false;
+	for(unsigned int i = 0;i < cLoop;i++)
+	{
+		if(dst_l[i] != dst_v0[i])
+		{
+			hasDifference = true;
+			break;
+		}
+		if(dst_h[i] != dst_v1[i])
+		{
+			hasDifference = true;
+			break;
+		}
+	}
+	if(hasDifference)
+	{
+		dumpArray("src0:", src0);
+		dumpArray("src1:", src1);
+		dumpArray("dstL:", dst_l);
+		dumpArray("vec0:", dst_v0);
+		dumpArray("dstH:", dst_h);
+		dumpArray("vec1:", dst_v1);
+	}
+}
+
+void showProgress(unsigned int i)
+{
+	if(((i / cProgress) * cProgress) == i)
+		std::cout << "Passed " << std::setw(4) << std::setfill(' ') << i << " / " << cVerifyLoop << std::endl;
+	return ;
 }
 
 int main(int argc, char** argv)
@@ -294,7 +322,24 @@ int main(int argc, char** argv)
 	uint32_t src0[4],   src1[4];
 	uint32_t dst_l[4],  dst_h[4];
 	uint32_t dst_v0[4], dst_v1[4];
-	verifyArray(src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);
+	std::cout << "verify uint32" << std::endl;
+	for(unsigned int i = 0;i < cVerifyLoop;i++)
+	{
+		showProgress(i);
+		verifyArray(src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);
+	}
+	std::cout << "verify uint16" << std::endl;
+	for(unsigned int i = 0;i < cVerifyLoop;i++)
+	{
+		showProgress(i);
+		verifyArray((uint16_t*)src0, (uint16_t*)src1, (uint16_t*)dst_l, (uint16_t*)dst_h, (uint16_t*)dst_v0, (uint16_t*)dst_v1, r);
+	}
+	std::cout << "verify uint8" << std::endl;
+	for(unsigned int i = 0;i < cVerifyLoop;i++)
+	{
+		showProgress(i);
+		verifyArray((uint8_t*)src0, (uint8_t*)src1, (uint8_t*)dst_l, (uint8_t*)dst_h, (uint8_t*)dst_v0, (uint8_t*)dst_v1, r);
+	}
 
 	return 0;
 }
