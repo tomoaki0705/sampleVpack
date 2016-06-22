@@ -179,6 +179,7 @@ void debugUnpackVector(const T* src0, const T* src1, T* dstLow, T* dstHigh)
 template <typename ST, typename DT>
 void debugPackVector(const ST* src0, const ST* src1, DT* dst)
 {
+	std::cerr << "Not implemented (" << __LINE__ << ')' << std::endl;
 	return;
 }
 
@@ -257,7 +258,6 @@ void debugUnpackVector(const uint8_t* src0, const uint8_t* src1, uint8_t* dstLow
 template <>
 void debugPackVector(const int32_t* src0, const int32_t* src1, int16_t* dst)
 {
-	std::cout << "hogehoes32" << std::endl;
 	int32x4_t v0 = vld1q_s32(src0);
 	int32x4_t v1 = vld1q_s32(src1);
 	int16x8_t d0 = cv_vpack_s32(v0, v1);
@@ -268,7 +268,6 @@ void debugPackVector(const int32_t* src0, const int32_t* src1, int16_t* dst)
 template <>
 void debugPackVector(const int16_t* src0, const int16_t* src1, int8_t* dst)
 {
-	std::cout << "hogehoes16" << std::endl;
 	int16x8_t v0 = vld1q_s16(src0);
 	int16x8_t v1 = vld1q_s16(src1);
 	int8x16_t d0 = cv_vpack_s16(v0, v1);
@@ -279,7 +278,6 @@ void debugPackVector(const int16_t* src0, const int16_t* src1, int8_t* dst)
 template <>
 void debugPackVector(const uint32_t* src0, const uint32_t* src1, uint16_t* dst)
 {
-	std::cout << "hogehoeu32" << std::endl;
 	uint32x4_t v0 = vld1q_u32(src0);
 	uint32x4_t v1 = vld1q_u32(src1);
 	uint16x8_t d0 = cv_vpack_u32(v0, v1);
@@ -290,7 +288,6 @@ void debugPackVector(const uint32_t* src0, const uint32_t* src1, uint16_t* dst)
 template <>
 void debugPackVector(const uint16_t* src0, const uint16_t* src1, uint8_t* dst)
 {
-	std::cout << "hogehoeu16" << std::endl;
 	uint16x8_t v0 = vld1q_u16(src0);
 	uint16x8_t v1 = vld1q_u16(src1);
 	uint8x16_t d0 = cv_vpack_u16(v0, v1);
@@ -420,8 +417,8 @@ int main(int argc, char** argv)
 	if(result == true) {result = verifyUnpack<int8_t  >("int8"  , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
 	if(result == true) {result = verifyPack<uint32_t, uint16_t>("uint32", src0, src1, dst, dst_v, r);}
 	if(result == true) {result = verifyPack<uint16_t, uint8_t >("uint16", src0, src1, dst, dst_v, r);}
-	if(result == true) {result = verifyPack<int32_t, uint16_t >("int32" , src0, src1, dst, dst_v, r);}
-	if(result == true) {result = verifyPack<int16_t, uint8_t  >("int16" , src0, src1, dst, dst_v, r);}
+	if(result == true) {result = verifyPack<int32_t, int16_t  >("int32" , src0, src1, dst, dst_v, r);}
+	if(result == true) {result = verifyPack<int16_t, int8_t   >("int16" , src0, src1, dst, dst_v, r);}
 
 	return 0;
 }
