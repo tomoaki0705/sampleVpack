@@ -3,8 +3,11 @@
 #include <arm_neon.h>
 #include "rng.hpp"
 const unsigned int cVerifyLoop = 1000;
-const unsigned int cProgress   = (cVerifyLoop/10);
+const unsigned int cProgress   = (cVerifyLoop/4);
+const unsigned int cWidth      = 3;
 
+// inline function for unpack
+// these inline functions can replace _mm_unpacklo_*** / _mm_unpackhi_***
 inline uint32x4_t cv_vunpack_lo_u32(uint32x4_t v0, uint32x4_t v1)
 {
 	uint32x2x2_t result = vzip_u32(vget_low_u32(v0), vget_low_u32(v1));
@@ -77,6 +80,8 @@ inline int8x16_t cv_vunpack_hi_s8(int8x16_t v0, int8x16_t v1)
 	return vcombine_s8(result.val[0], result.val[1]);
 }
 
+// inline function for pack
+// these inline functions can replace _mm_packs_***
 inline uint16x8_t cv_vpacks_u32(uint32x4_t v0, uint32x4_t v1)
 {
 	return vcombine_u16(vqmovn_u32(v0), vqmovn_u32(v1));
@@ -97,6 +102,8 @@ inline int8x16_t cv_vpacks_s16(int16x8_t v0, int16x8_t v1)
 	return vcombine_s8(vqmovn_s16(v0), vqmovn_s16(v1));
 }
 
+// inline function for pack
+// these inline functions can replace _mm_pack_***
 inline uint16x8_t cv_vpack_u32(uint32x4_t v0, uint32x4_t v1)
 {
 	return vcombine_u16(vmovn_u32(v0), vmovn_u32(v1));
@@ -117,13 +124,12 @@ inline int8x16_t cv_vpack_s16(int16x8_t v0, int16x8_t v1)
 	return vcombine_s8(vmovn_s16(v0), vmovn_s16(v1));
 }
 
-
 template <typename ST>
-void fill(ST* ptr, RNG& r)
+void fill(ST* ptr, RNG& r, unsigned int mask = 0x0 )
 {
 	unsigned int cLoop = 16/sizeof(ST);
 	for(unsigned int i = 0;i < cLoop;i++)
-		ptr[i] = r.next();
+		ptr[i] = (r.next() & mask);
 }
 
 template <typename T>
@@ -312,7 +318,7 @@ void verifyArray(T* src0, T* src1, T* dst_l, T* dst_h, T* dst_v0, T* dst_v1, RNG
 void showProgress(unsigned int i)
 {
 	if(((i / cProgress) * cProgress) == i)
-		std::cout << "Passed " << std::setw(4) << std::setfill(' ') << i << " / " << cVerifyLoop << std::endl;
+		std::cout << "Passed " << std::setw(cWidth) << std::setfill(' ') << i << " / " << cVerifyLoop << std::endl;
 	return ;
 }
 
@@ -340,6 +346,25 @@ int main(int argc, char** argv)
 		showProgress(i);
 		verifyArray((uint8_t*)src0, (uint8_t*)src1, (uint8_t*)dst_l, (uint8_t*)dst_h, (uint8_t*)dst_v0, (uint8_t*)dst_v1, r);
 	}
+	std::cout << "verify int32" << std::endl;
+	for(unsigned int i = 0;i < cVerifyLoop;i++)
+	{
+		showProgress(i);
+		verifyArray((int32_t*)src0, (int32_t*)src1, (int32_t*)dst_l, (int32_t*)dst_h, (int32_t*)dst_v0, (int32_t*)dst_v1, r);
+	}
+	std::cout << "verify int16" << std::endl;
+	for(unsigned int i = 0;i < cVerifyLoop;i++)
+	{
+		showProgress(i);
+		verifyArray((int16_t*)src0, (int16_t*)src1, (int16_t*)dst_l, (int16_t*)dst_h, (int16_t*)dst_v0, (int16_t*)dst_v1, r);
+	}
+	std::cout << "verify int8" << std::endl;
+	for(unsigned int i = 0;i < cVerifyLoop;i++)
+	{
+		showProgress(i);
+		verifyArray((int8_t*)src0, (int8_t*)src1, (int8_t*)dst_l, (int8_t*)dst_h, (int8_t*)dst_v0, (int8_t*)dst_v1, r);
+	}
+
 
 	return 0;
 }
