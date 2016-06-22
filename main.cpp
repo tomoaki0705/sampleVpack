@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <typeinfo>
 #include <arm_neon.h>
+#include "saturate.hpp"
 #include "rng.hpp"
 const unsigned int cVerifyLoop = 1000;
 const unsigned int cProgress   = (cVerifyLoop/4);
@@ -157,6 +158,17 @@ void debugPack(const ST* src0, const ST* src1, DT* dst)
 	}
 }
 
+template <typename ST, typename DT>
+void debugPackS(const ST* src0, const ST* src1, DT* dst)
+{
+	unsigned int cLoop = (16 / sizeof(ST));
+	for(unsigned int i = 0;i < cLoop;i++)
+	{
+		dst[i      ] = saturate_cast<DT>(src0[i]);
+		dst[i+cLoop] = saturate_cast<DT>(src1[i]);
+	}
+}
+
 template <typename T>
 void dumpArray(const char* header, const T* src0)
 {
@@ -178,6 +190,13 @@ void debugUnpackVector(const T* src0, const T* src1, T* dstLow, T* dstHigh)
 
 template <typename ST, typename DT>
 void debugPackVector(const ST* src0, const ST* src1, DT* dst)
+{
+	std::cerr << "Not implemented (" << __LINE__ << ')' << std::endl;
+	return;
+}
+
+template <typename ST, typename DT>
+void debugPackVectorS(const ST* src0, const ST* src1, DT* dst)
 {
 	std::cerr << "Not implemented (" << __LINE__ << ')' << std::endl;
 	return;
@@ -295,6 +314,46 @@ void debugPackVector(const uint16_t* src0, const uint16_t* src1, uint8_t* dst)
 	return;
 }
 
+template <>
+void debugPackVectorS(const int32_t* src0, const int32_t* src1, int16_t* dst)
+{
+	int32x4_t v0 = vld1q_s32(src0);
+	int32x4_t v1 = vld1q_s32(src1);
+	int16x8_t d0 = cv_vpacks_s32(v0, v1);
+	vst1q_s16(dst, d0);
+	return;
+}
+
+template <>
+void debugPackVectorS(const int16_t* src0, const int16_t* src1, int8_t* dst)
+{
+	int16x8_t v0 = vld1q_s16(src0);
+	int16x8_t v1 = vld1q_s16(src1);
+	int8x16_t d0 = cv_vpacks_s16(v0, v1);
+	vst1q_s8(dst, d0);
+	return;
+}
+
+template <>
+void debugPackVectorS(const uint32_t* src0, const uint32_t* src1, uint16_t* dst)
+{
+	uint32x4_t v0 = vld1q_u32(src0);
+	uint32x4_t v1 = vld1q_u32(src1);
+	uint16x8_t d0 = cv_vpacks_u32(v0, v1);
+	vst1q_u16(dst, d0);
+	return;
+}
+
+template <>
+void debugPackVectorS(const uint16_t* src0, const uint16_t* src1, uint8_t* dst)
+{
+	uint16x8_t v0 = vld1q_u16(src0);
+	uint16x8_t v1 = vld1q_u16(src1);
+	uint8x16_t d0 = cv_vpacks_u16(v0, v1);
+	vst1q_u8(dst, d0);
+	return;
+}
+
 template <typename T>
 bool verifyArrayVectorAndNormal(T* dst, T* dst_v)
 {
@@ -347,6 +406,32 @@ bool verifyArrayPack(ST* src0, ST* src1, DT* dst, DT* dst_v, RNG& r)
 	fill(src1, r, mask);
 	debugPack(src0, src1, dst);
 	debugPackVector(src0, src1, dst_v);
+	bool hasDifference = verifyArrayVectorAndNormal(dst, dst_v);
+	if(hasDifference)
+	{
+		dumpArray("src0:", src0);
+		dumpArray("src1:", src1);
+		dumpArray("dst :", dst);
+		dumpArray("dstV:", dst_v);
+	}
+	
+	return !hasDifference;
+}
+
+template <typename ST, typename DT>
+bool verifyArrayPackS(ST* src0, ST* src1, DT* dst, DT* dst_v, RNG& r)
+{
+	unsigned int mask = 0xffff;
+	if(typeid(ST) == typeid(int32_t))
+		mask = 0x7fff;
+	if(typeid(ST) == typeid(uint16_t))
+		mask = 0xff;
+	if(typeid(ST) == typeid(int16_t))
+		mask = 0x7f;
+	fill(src0, r, mask);
+	fill(src1, r, mask);
+	debugPackS(src0, src1, dst);
+	debugPackVectorS(src0, src1, dst_v);
 	bool hasDifference = verifyArrayVectorAndNormal(dst, dst_v);
 	if(hasDifference)
 	{
