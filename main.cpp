@@ -7,6 +7,7 @@
 const unsigned int cVerifyLoop = 1000;
 const unsigned int cProgress   = (cVerifyLoop/4);
 const unsigned int cWidth      = 3;
+const unsigned int cVectorSize = 16;
 
 // inline function for unpack
 // these inline functions can replace _mm_unpacklo_*** / _mm_unpackhi_***
@@ -129,7 +130,7 @@ inline int8x16_t cv_vpack_s16(int16x8_t v0, int16x8_t v1)
 template <typename ST>
 void fill(ST* ptr, RNG& r, unsigned int mask = 0xffffffff )
 {
-	unsigned int cLoop = 16/sizeof(ST);
+	unsigned int cLoop = cVectorSize/sizeof(ST);
 	for(unsigned int i = 0;i < cLoop;i++)
 		ptr[i] = (r.next() & mask);
 }
@@ -137,7 +138,7 @@ void fill(ST* ptr, RNG& r, unsigned int mask = 0xffffffff )
 template <typename T>
 void debugUnpack(const T* src0, const T* src1, T* dst0, T* dst1)
 {
-	unsigned int cLoop = (16 / sizeof(T)) >> 1;
+	unsigned int cLoop = (cVectorSize / sizeof(T)) >> 1;
 	for(unsigned int i = 0;i < cLoop;i++)
 	{
 		dst0[i*2  ] = src0[i];
@@ -150,7 +151,7 @@ void debugUnpack(const T* src0, const T* src1, T* dst0, T* dst1)
 template <typename ST, typename DT>
 void debugPack(const ST* src0, const ST* src1, DT* dst)
 {
-	unsigned int cLoop = (16 / sizeof(ST));
+	unsigned int cLoop = (cVectorSize / sizeof(ST));
 	for(unsigned int i = 0;i < cLoop;i++)
 	{
 		dst[i      ] = (DT)src0[i];
@@ -161,7 +162,7 @@ void debugPack(const ST* src0, const ST* src1, DT* dst)
 template <typename ST, typename DT>
 void debugPackS(const ST* src0, const ST* src1, DT* dst)
 {
-	unsigned int cLoop = (16 / sizeof(ST));
+	unsigned int cLoop = (cVectorSize / sizeof(ST));
 	for(unsigned int i = 0;i < cLoop;i++)
 	{
 		dst[i      ] = saturate_cast<DT>(src0[i]);
@@ -173,7 +174,7 @@ template <typename T>
 void dumpArray(const char* header, const T* src0)
 {
 	using namespace std;
-	unsigned int cLoop = 16/sizeof(T);
+	unsigned int cLoop = cVectorSize/sizeof(T);
 	cout << header;
 	for(unsigned int i = 0;i < cLoop;i++)
 	{
@@ -357,7 +358,7 @@ void debugPackVectorS(const uint16_t* src0, const uint16_t* src1, uint8_t* dst)
 template <typename T>
 bool verifyArrayVectorAndNormal(T* dst, T* dst_v)
 {
-	unsigned int cLoop = 16/sizeof(T);
+	unsigned int cLoop = cVectorSize/sizeof(T);
 	bool hasDifference = false;
 	for(unsigned int i = 0;i < cLoop;i++)
 	{
@@ -421,13 +422,13 @@ bool verifyArrayPack(ST* src0, ST* src1, DT* dst, DT* dst_v, RNG& r)
 template <typename ST, typename DT>
 bool verifyArrayPackS(ST* src0, ST* src1, DT* dst, DT* dst_v, RNG& r)
 {
-	unsigned int mask = 0xffff;
+	unsigned int mask = 0xffffffff;
 	if(typeid(ST) == typeid(int32_t))
-		mask = 0x7fff;
+		mask = 0x7fffffff;
 	if(typeid(ST) == typeid(uint16_t))
-		mask = 0xff;
+		mask = 0xffff;
 	if(typeid(ST) == typeid(int16_t))
-		mask = 0x7f;
+		mask = 0x7fff;
 	fill(src0, r, mask);
 	fill(src1, r, mask);
 	debugPackS(src0, src1, dst);
@@ -446,42 +447,72 @@ bool verifyArrayPackS(ST* src0, ST* src1, DT* dst, DT* dst_v, RNG& r)
 
 void showProgress(unsigned int i)
 {
+	using namespace std;
 	if(((i / cProgress) * cProgress) == i)
-		std::cout << "Passed " << std::setw(cWidth) << std::setfill(' ') << i << " / " << cVerifyLoop << std::endl;
+		cout << "Passed " << setw(cWidth) << setfill(' ') << i << " / " << cVerifyLoop << endl;
 	return ;
 }
 
 template <typename T>
 bool verifyUnpack(const char* message, uint32_t* src0, uint32_t* src1, uint32_t* dst_l, uint32_t* dst_h, uint32_t* dst_v0, uint32_t* dst_v1, RNG& r)
 {
+	using namespace std;
 	bool result = true;
-	std::cout << message << std::endl;
+	cout << "test of unpack\t" << message;
 	for(unsigned int i = 0;i < cVerifyLoop;i++)
 	{
-		showProgress(i);
 		if(verifyArrayUnpack((T*)src0, (T*)src1, (T*)dst_l, (T*)dst_h, (T*)dst_v0, (T*)dst_v1, r) == false)
 		{
 			result = false;
 			break;
 		}
 	}
+	if(result)
+		cout << " Passed" << endl;
+	else
+		cout << " Failed" << endl;
 	return result;
 }
 
 template <typename ST, typename DT>
 bool verifyPack(const char* message, uint32_t* src0, uint32_t* src1, uint16_t* dst, uint16_t* dst_v, RNG& r)
 {
+	using namespace std;
 	bool result = true;
-	std::cout << message << std::endl;
+	cout << "test of pack\t" << message;
 	for(unsigned int i = 0;i < cVerifyLoop;i++)
 	{
-		showProgress(i);
 		if(verifyArrayPack((ST*)src0, (ST*)src1, (DT*)dst, (DT*)dst_v, r) == false)
 		{
 			result = false;
 			break;
 		}
 	}
+	if(result)
+		cout << " Passed" << endl;
+	else
+		cout << " Failed" << endl;
+	return result;
+}
+
+template <typename ST, typename DT>
+bool verifyPackS(const char* message, uint32_t* src0, uint32_t* src1, uint16_t* dst, uint16_t* dst_v, RNG& r)
+{
+	using namespace std;
+	bool result = true;
+	cout << "test of pack saturation " << message;
+	for(unsigned int i = 0;i < cVerifyLoop;i++)
+	{
+		if(verifyArrayPackS((ST*)src0, (ST*)src1, (DT*)dst, (DT*)dst_v, r) == false)
+		{
+			result = false;
+			break;
+		}
+	}
+	if(result)
+		cout << " Passed" << endl;
+	else
+		cout << " Failed" << endl;
 	return result;
 }
 
@@ -502,8 +533,12 @@ int main(int argc, char** argv)
 	if(result == true) {result = verifyUnpack<int8_t  >("int8"  , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
 	if(result == true) {result = verifyPack<uint32_t, uint16_t>("uint32", src0, src1, dst, dst_v, r);}
 	if(result == true) {result = verifyPack<uint16_t, uint8_t >("uint16", src0, src1, dst, dst_v, r);}
-	if(result == true) {result = verifyPack<int32_t, int16_t  >("int32" , src0, src1, dst, dst_v, r);}
-	if(result == true) {result = verifyPack<int16_t, int8_t   >("int16" , src0, src1, dst, dst_v, r);}
+	if(result == true) {result = verifyPack<int32_t,  int16_t >("int32" , src0, src1, dst, dst_v, r);}
+	if(result == true) {result = verifyPack<int16_t,  int8_t  >("int16" , src0, src1, dst, dst_v, r);}
+	if(result == true) {result = verifyPackS<uint32_t, uint16_t>("uint32", src0, src1, dst, dst_v, r);}
+	if(result == true) {result = verifyPackS<uint16_t, uint8_t >("uint16", src0, src1, dst, dst_v, r);}
+	if(result == true) {result = verifyPackS<int32_t,  int16_t >("int32" , src0, src1, dst, dst_v, r);}
+	if(result == true) {result = verifyPackS<int16_t,  int8_t  >("int16" , src0, src1, dst, dst_v, r);}
 
 	return 0;
 }
