@@ -283,7 +283,7 @@ void debugVector(const uint16_t* src0, const uint16_t* src1, uint8_t* dst)
 }
 
 template <typename T>
-void verifyArray(T* src0, T* src1, T* dst_l, T* dst_h, T* dst_v0, T* dst_v1, RNG& r)
+bool verifyArrayUnpack(T* src0, T* src1, T* dst_l, T* dst_h, T* dst_v0, T* dst_v1, RNG& r)
 {
 	fill(src0, r);
 	fill(src1, r);
@@ -313,6 +313,7 @@ void verifyArray(T* src0, T* src1, T* dst_l, T* dst_h, T* dst_v0, T* dst_v1, RNG
 		dumpArray("dstH:", dst_h);
 		dumpArray("vec1:", dst_v1);
 	}
+	return !hasDifference;
 }
 
 void showProgress(unsigned int i)
@@ -322,49 +323,36 @@ void showProgress(unsigned int i)
 	return ;
 }
 
+template <typename T>
+bool verifyUnpack(const char* message, uint32_t* src0, uint32_t* src1, uint32_t* dst_l, uint32_t* dst_h, uint32_t* dst_v0, uint32_t* dst_v1, RNG& r)
+{
+	bool result = true;
+	std::cout << message << std::endl;
+	for(unsigned int i = 0;i < cVerifyLoop;i++)
+	{
+		showProgress(i);
+		if(verifyArrayUnpack((T*)src0, (T*)src1, (T*)dst_l, (T*)dst_h, (T*)dst_v0, (T*)dst_v1, r) == false)
+		{
+			result = false;
+			break;
+		}
+	}
+	return result;
+}
+
 int main(int argc, char** argv)
 {
 	RNG r(0x123);
 	uint32_t src0[4],   src1[4];
 	uint32_t dst_l[4],  dst_h[4];
 	uint32_t dst_v0[4], dst_v1[4];
-	std::cout << "verify uint32" << std::endl;
-	for(unsigned int i = 0;i < cVerifyLoop;i++)
-	{
-		showProgress(i);
-		verifyArray(src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);
-	}
-	std::cout << "verify uint16" << std::endl;
-	for(unsigned int i = 0;i < cVerifyLoop;i++)
-	{
-		showProgress(i);
-		verifyArray((uint16_t*)src0, (uint16_t*)src1, (uint16_t*)dst_l, (uint16_t*)dst_h, (uint16_t*)dst_v0, (uint16_t*)dst_v1, r);
-	}
-	std::cout << "verify uint8" << std::endl;
-	for(unsigned int i = 0;i < cVerifyLoop;i++)
-	{
-		showProgress(i);
-		verifyArray((uint8_t*)src0, (uint8_t*)src1, (uint8_t*)dst_l, (uint8_t*)dst_h, (uint8_t*)dst_v0, (uint8_t*)dst_v1, r);
-	}
-	std::cout << "verify int32" << std::endl;
-	for(unsigned int i = 0;i < cVerifyLoop;i++)
-	{
-		showProgress(i);
-		verifyArray((int32_t*)src0, (int32_t*)src1, (int32_t*)dst_l, (int32_t*)dst_h, (int32_t*)dst_v0, (int32_t*)dst_v1, r);
-	}
-	std::cout << "verify int16" << std::endl;
-	for(unsigned int i = 0;i < cVerifyLoop;i++)
-	{
-		showProgress(i);
-		verifyArray((int16_t*)src0, (int16_t*)src1, (int16_t*)dst_l, (int16_t*)dst_h, (int16_t*)dst_v0, (int16_t*)dst_v1, r);
-	}
-	std::cout << "verify int8" << std::endl;
-	for(unsigned int i = 0;i < cVerifyLoop;i++)
-	{
-		showProgress(i);
-		verifyArray((int8_t*)src0, (int8_t*)src1, (int8_t*)dst_l, (int8_t*)dst_h, (int8_t*)dst_v0, (int8_t*)dst_v1, r);
-	}
-
+	bool result = true;
+	if(result == true) {result = verifyUnpack<uint32_t>("verify uint32", src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyUnpack<uint16_t>("verify uint16", src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyUnpack<uint8_t >("verify uint16", src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyUnpack<int32_t >("verify int32" , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyUnpack<int16_t >("verify int16" , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyUnpack<int8_t  >("verify int8"  , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
 
 	return 0;
 }
