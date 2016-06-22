@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <typeinfo>
 #include <arm_neon.h>
 #include "rng.hpp"
 const unsigned int cVerifyLoop = 1000;
@@ -125,7 +126,7 @@ inline int8x16_t cv_vpack_s16(int16x8_t v0, int16x8_t v1)
 }
 
 template <typename ST>
-void fill(ST* ptr, RNG& r, unsigned int mask = 0x0 )
+void fill(ST* ptr, RNG& r, unsigned int mask = 0xffffffff )
 {
 	unsigned int cLoop = 16/sizeof(ST);
 	for(unsigned int i = 0;i < cLoop;i++)
@@ -142,6 +143,17 @@ void debugUnpack(const T* src0, const T* src1, T* dst0, T* dst1)
 		dst0[i*2+1] = src1[i];
 		dst1[i*2  ] = src0[i+cLoop];
 		dst1[i*2+1] = src1[i+cLoop];
+	}
+}
+
+template <typename ST, typename DT>
+void debugPack(const ST* src0, const ST* src1, DT* dst)
+{
+	unsigned int cLoop = (16 / sizeof(ST));
+	for(unsigned int i = 0;i < cLoop;i++)
+	{
+		dst[i      ] = (DT)src0[i];
+		dst[i+cLoop] = (DT)src1[i];
 	}
 }
 
@@ -165,7 +177,7 @@ void debugUnpackVector(const T* src0, const T* src1, T* dstLow, T* dstHigh)
 }
 
 template <typename ST, typename DT>
-void debugVector(const ST* src0, const ST* src1, DT* dst)
+void debugPackVector(const ST* src0, const ST* src1, DT* dst)
 {
 	return;
 }
@@ -243,8 +255,9 @@ void debugUnpackVector(const uint8_t* src0, const uint8_t* src1, uint8_t* dstLow
 }
 
 template <>
-void debugVector(const int32_t* src0, const int32_t* src1, int16_t* dst)
+void debugPackVector(const int32_t* src0, const int32_t* src1, int16_t* dst)
 {
+	std::cout << "hogehoes32" << std::endl;
 	int32x4_t v0 = vld1q_s32(src0);
 	int32x4_t v1 = vld1q_s32(src1);
 	int16x8_t d0 = cv_vpack_s32(v0, v1);
@@ -253,8 +266,9 @@ void debugVector(const int32_t* src0, const int32_t* src1, int16_t* dst)
 }
 
 template <>
-void debugVector(const int16_t* src0, const int16_t* src1, int8_t* dst)
+void debugPackVector(const int16_t* src0, const int16_t* src1, int8_t* dst)
 {
+	std::cout << "hogehoes16" << std::endl;
 	int16x8_t v0 = vld1q_s16(src0);
 	int16x8_t v1 = vld1q_s16(src1);
 	int8x16_t d0 = cv_vpack_s16(v0, v1);
@@ -263,8 +277,9 @@ void debugVector(const int16_t* src0, const int16_t* src1, int8_t* dst)
 }
 
 template <>
-void debugVector(const uint32_t* src0, const uint32_t* src1, uint16_t* dst)
+void debugPackVector(const uint32_t* src0, const uint32_t* src1, uint16_t* dst)
 {
+	std::cout << "hogehoeu32" << std::endl;
 	uint32x4_t v0 = vld1q_u32(src0);
 	uint32x4_t v1 = vld1q_u32(src1);
 	uint16x8_t d0 = cv_vpack_u32(v0, v1);
@@ -273,8 +288,9 @@ void debugVector(const uint32_t* src0, const uint32_t* src1, uint16_t* dst)
 }
 
 template <>
-void debugVector(const uint16_t* src0, const uint16_t* src1, uint8_t* dst)
+void debugPackVector(const uint16_t* src0, const uint16_t* src1, uint8_t* dst)
 {
+	std::cout << "hogehoeu16" << std::endl;
 	uint16x8_t v0 = vld1q_u16(src0);
 	uint16x8_t v1 = vld1q_u16(src1);
 	uint8x16_t d0 = cv_vpack_u16(v0, v1);
@@ -283,27 +299,31 @@ void debugVector(const uint16_t* src0, const uint16_t* src1, uint8_t* dst)
 }
 
 template <typename T>
-bool verifyArrayUnpack(T* src0, T* src1, T* dst_l, T* dst_h, T* dst_v0, T* dst_v1, RNG& r)
+bool verifyArrayVectorAndNormal(T* dst, T* dst_v)
 {
-	fill(src0, r);
-	fill(src1, r);
-	debugUnpack((const T*)src0, (const T*)src1, (T*)dst_l,  (T*)dst_h);
-	debugUnpackVector((const T*)src0, (const T*)src1, (T*)dst_v0, (T*)dst_v1);
 	unsigned int cLoop = 16/sizeof(T);
 	bool hasDifference = false;
 	for(unsigned int i = 0;i < cLoop;i++)
 	{
-		if(dst_l[i] != dst_v0[i])
-		{
-			hasDifference = true;
-			break;
-		}
-		if(dst_h[i] != dst_v1[i])
+		if(dst[i] != dst_v[i])
 		{
 			hasDifference = true;
 			break;
 		}
 	}
+	return hasDifference;
+}
+
+template <typename T>
+bool verifyArrayUnpack(T* src0, T* src1, T* dst_l, T* dst_h, T* dst_v0, T* dst_v1, RNG& r)
+{
+	fill(src0, r);
+	fill(src1, r);
+	debugUnpack(src0, src1, dst_l, dst_h);
+	debugUnpackVector(src0, src1, dst_v0, dst_v1);
+	bool hasDifference = false;
+	if(hasDifference == false) { hasDifference = verifyArrayVectorAndNormal(dst_l, dst_v0);}
+	if(hasDifference == false) { hasDifference = verifyArrayVectorAndNormal(dst_h, dst_v1);}
 	if(hasDifference)
 	{
 		dumpArray("src0:", src0);
@@ -313,6 +333,32 @@ bool verifyArrayUnpack(T* src0, T* src1, T* dst_l, T* dst_h, T* dst_v0, T* dst_v
 		dumpArray("dstH:", dst_h);
 		dumpArray("vec1:", dst_v1);
 	}
+	return !hasDifference;
+}
+
+template <typename ST, typename DT>
+bool verifyArrayPack(ST* src0, ST* src1, DT* dst, DT* dst_v, RNG& r)
+{
+	unsigned int mask = 0xffff;
+	if(typeid(ST) == typeid(int))
+		mask = 0x7fff;
+	if(typeid(ST) == typeid(unsigned short))
+		mask = 0xff;
+	if(typeid(ST) == typeid(short))
+		mask = 0x7f;
+	fill(src0, r, mask);
+	fill(src1, r, mask);
+	debugPack(src0, src1, dst);
+	debugPackVector(src0, src1, dst_v);
+	bool hasDifference = verifyArrayVectorAndNormal(dst, dst_v);
+	if(hasDifference)
+	{
+		dumpArray("src0:", src0);
+		dumpArray("src1:", src1);
+		dumpArray("dst :", dst);
+		dumpArray("dstV:", dst_v);
+	}
+	
 	return !hasDifference;
 }
 
@@ -340,19 +386,42 @@ bool verifyUnpack(const char* message, uint32_t* src0, uint32_t* src1, uint32_t*
 	return result;
 }
 
+template <typename ST, typename DT>
+bool verifyPack(const char* message, uint32_t* src0, uint32_t* src1, uint16_t* dst, uint16_t* dst_v, RNG& r)
+{
+	bool result = true;
+	std::cout << message << std::endl;
+	for(unsigned int i = 0;i < cVerifyLoop;i++)
+	{
+		showProgress(i);
+		if(verifyArrayPack((ST*)src0, (ST*)src1, (DT*)dst, (DT*)dst_v, r) == false)
+		{
+			result = false;
+			break;
+		}
+	}
+	return result;
+}
+
 int main(int argc, char** argv)
 {
 	RNG r(0x123);
 	uint32_t src0[4],   src1[4];
 	uint32_t dst_l[4],  dst_h[4];
 	uint32_t dst_v0[4], dst_v1[4];
+	uint16_t dst[8];
+	uint16_t dst_v[8];
 	bool result = true;
 	if(result == true) {result = verifyUnpack<uint32_t>("uint32", src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
 	if(result == true) {result = verifyUnpack<uint16_t>("uint16", src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
-	if(result == true) {result = verifyUnpack<uint8_t >("uint16", src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyUnpack<uint8_t >("uint8" , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
 	if(result == true) {result = verifyUnpack<int32_t >("int32" , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
 	if(result == true) {result = verifyUnpack<int16_t >("int16" , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
 	if(result == true) {result = verifyUnpack<int8_t  >("int8"  , src0, src1, dst_l, dst_h, dst_v0, dst_v1, r);}
+	if(result == true) {result = verifyPack<uint32_t, uint16_t>("uint32", src0, src1, dst, dst_v, r);}
+	if(result == true) {result = verifyPack<uint16_t, uint8_t >("uint16", src0, src1, dst, dst_v, r);}
+	if(result == true) {result = verifyPack<int32_t, uint16_t >("int32" , src0, src1, dst, dst_v, r);}
+	if(result == true) {result = verifyPack<int16_t, uint8_t  >("int16" , src0, src1, dst, dst_v, r);}
 
 	return 0;
 }
